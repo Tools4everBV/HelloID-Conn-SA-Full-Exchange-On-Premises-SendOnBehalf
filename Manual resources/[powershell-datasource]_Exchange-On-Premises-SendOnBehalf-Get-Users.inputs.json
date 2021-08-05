@@ -1,0 +1,10 @@
+[
+    {
+        "description":  "Search filter for user lookup",
+        "translateDescription":  false,
+        "inputFieldType":  1,
+        "key":  "SearchUser",
+        "type":  0,
+        "options":  1
+    }
+]

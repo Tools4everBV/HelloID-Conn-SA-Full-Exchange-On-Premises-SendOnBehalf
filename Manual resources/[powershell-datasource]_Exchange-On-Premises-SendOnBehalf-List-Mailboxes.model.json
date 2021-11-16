@@ -1,0 +1,10 @@
+[
+    {
+        "key":  "ExchangeGuid",
+        "type":  0
+    },
+    {
+        "key":  "UserPrincipalName",
+        "type":  0
+    }
+]

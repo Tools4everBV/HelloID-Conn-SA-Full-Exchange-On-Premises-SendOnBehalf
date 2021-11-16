@@ -1,10 +1,18 @@
 [
     {
+        "key":  "DisplayName",
+        "type":  0
+    },
+    {
+        "key":  "GUID",
+        "type":  0
+    },
+    {
         "key":  "DistinguishedName",
         "type":  0
     },
     {
-        "key":  "displayName",
+        "key":  "RecipientTypeDetails",
         "type":  0
     },
     {
@@ -12,7 +20,7 @@
         "type":  0
     },
     {
-        "key":  "Alias",
+        "key":  "SamAccountName",
         "type":  0
     }
 ]

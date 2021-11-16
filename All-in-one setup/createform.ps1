@@ -6,8 +6,8 @@
 $portalUrl = "https://CUSTOMER.helloid.com"
 $apiKey = "API_KEY"
 $apiSecret = "API_SECRET"
-$delegatedFormAccessGroupNames = @("Users","HID_administrators") #Only unique names are supported. Groups must exist!
-$delegatedFormCategories = @("Exchange Administration") #Only unique names are supported. Categories will be created if not exists
+$delegatedFormAccessGroupNames = @("Users") #Only unique names are supported. Groups must exist!
+$delegatedFormCategories = @("Exchange On-Premise") #Only unique names are supported. Categories will be created if not exists
 $script:debugLogging = $false #Default value: $false. If $true, the HelloID resource GUIDs will be shown in the logging
 $script:duplicateForm = $false #Default value: $false. If $true, the HelloID resource names will be changed to import a duplicate Form
 $script:duplicateFormSuffix = "_tmp" #the suffix will be added to all HelloID resource names to generate a duplicate form with different resource names
@@ -16,54 +16,27 @@ $script:duplicateFormSuffix = "_tmp" #the suffix will be added to all HelloID re
 #NOTE: You can also update the HelloID Global variable values afterwards in the HelloID Admin Portal: https://<CUSTOMER>.helloid.com/admin/variablelibrary
 $globalHelloIDVariables = [System.Collections.Generic.List[object]]@();
 
-#Global variable #1 >> ExchangeAdminUsername
+#Global variable #1 >> exchangeAdminPassword
 $tmpName = @'
-ExchangeAdminUsername
+exchangeAdminPassword
 '@ 
 $tmpValue = "" 
 $globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "True"});
 
-#Global variable #2 >> ExchangeAuthentication
+#Global variable #2 >> exchangeAdminUsername
 $tmpName = @'
-ExchangeAuthentication
+exchangeAdminUsername
 '@ 
 $tmpValue = @'
-kerberos
+TestAdmin@freque.nl
 '@ 
 $globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
 
-#Global variable #3 >> ExchangeAdminPassword
-$tmpName = @'
-ExchangeAdminPassword
-'@ 
-$tmpValue = "" 
-$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "True"});
-
-#Global variable #4 >> ExchangeConnectionUri
+#Global variable #3 >> ExchangeConnectionUri
 $tmpName = @'
 ExchangeConnectionUri
 '@ 
-$tmpValue = @'
-http://RYK-EX16SRV01.ryk-ex16.dev/PowerShell
-'@ 
-$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
-
-#Global variable #5 >> ExchangeSendOnBehalfMailboxSearchOU
-$tmpName = @'
-ExchangeSendOnBehalfMailboxSearchOU
-'@ 
-$tmpValue = @'
-ryk-ex16.dev/Exchangeusers
-'@ 
-$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
-
-#Global variable #6 >> ExchangeSendOnBehalfUserSearchOU
-$tmpName = @'
-ExchangeSendOnBehalfUserSearchOU
-'@ 
-$tmpValue = @'
-ryk-ex16.dev/Exchangeusers
-'@ 
+$tmpValue = "" 
 $globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
 
 
@@ -95,7 +68,18 @@ if (-not [string]::IsNullOrEmpty($portalBaseUrl)) {
 
 # Define specific endpoint URI
 $script:PortalBaseUrl = $script:PortalBaseUrl.trim("/") + "/"  
- 
+
+# Make sure to reveive an empty array using PowerShell Core
+function ConvertFrom-Json-WithEmptyArray([string]$jsonString) {
+    # Running in PowerShell Core?
+    if($IsCoreCLR -eq $true){
+        $r = [Object[]]($jsonString | ConvertFrom-Json -NoEnumerate)
+        return ,$r  # Force return value to be an array using a comma
+    } else {
+        $r = [Object[]]($jsonString | ConvertFrom-Json)
+        return ,$r  # Force return value to be an array using a comma
+    }
+}
 
 function Invoke-HelloIDGlobalVariable {
     param(
@@ -162,7 +146,7 @@ function Invoke-HelloIDAutomationTask {
                 powerShellScript    = $PowershellScript;
                 automationContainer = $AutomationContainer;
                 objectGuid          = $ObjectGuid;
-                variables           = [Object[]]($Variables | ConvertFrom-Json);
+                variables           = (ConvertFrom-Json-WithEmptyArray($Variables));
             }
             $body = ConvertTo-Json -InputObject $body
     
@@ -213,11 +197,11 @@ function Invoke-HelloIDDatasource {
             $body = @{
                 name               = $DatasourceName;
                 type               = $DatasourceType;
-                model              = [Object[]]($DatasourceModel | ConvertFrom-Json);
+                model              = (ConvertFrom-Json-WithEmptyArray($DatasourceModel));
                 automationTaskGUID = $AutomationTaskGuid;
-                value              = [Object[]]($DatasourceStaticValue | ConvertFrom-Json);
+                value              = (ConvertFrom-Json-WithEmptyArray($DatasourceStaticValue));
                 script             = $DatasourcePsScript;
-                input              = [Object[]]($DatasourceInput | ConvertFrom-Json);
+                input              = (ConvertFrom-Json-WithEmptyArray($DatasourceInput));
             }
             $body = ConvertTo-Json -InputObject $body
       
@@ -259,7 +243,7 @@ function Invoke-HelloIDDynamicForm {
             #Create Dynamic form
             $body = @{
                 Name       = $FormName;
-                FormSchema = [Object[]]($FormSchema | ConvertFrom-Json)
+                FormSchema = (ConvertFrom-Json-WithEmptyArray($FormSchema));
             }
             $body = ConvertTo-Json -InputObject $body -Depth 100
     
@@ -307,7 +291,7 @@ function Invoke-HelloIDDelegatedForm {
                 name            = $DelegatedFormName;
                 dynamicFormGUID = $DynamicFormGuid;
                 isEnabled       = "True";
-                accessGroups    = [Object[]]($AccessGroups | ConvertFrom-Json);
+                accessGroups    = (ConvertFrom-Json-WithEmptyArray($AccessGroups));
                 useFaIcon       = $UseFaIcon;
                 faIcon          = $FaIcon;
             }    
@@ -344,204 +328,241 @@ foreach ($item in $globalHelloIDVariables) {
 
 
 <# Begin: HelloID Data sources #>
-<# Begin: DataSource "Exchange-On-Premises-SendOnBehalf-List-Mailboxes" #>
+<# Begin: DataSource "Exchange-user-generate-table-sharedmailbox-manage-memberships" #>
 $tmpPsScript = @'
-# used global defined variables in helloid
-# $ExchangeConnectionUri
-# $ExchangeAdminUsername
-# $ExchangeAdminPassword
-# $ExchangeAuthentication
-# $ExchangeSendOnBehalfMailboxSearchOU
-
-## connect to exchange and get list of mailboxes
-
+<#----- Exchange On-Premises: Start -----#>
+# Connect to Exchange
 try{
-    $adminSecurePassword = ConvertTo-SecureString -String $ExchangeAdminPassword -AsPlainText -Force
+    $adminSecurePassword = ConvertTo-SecureString -String "$ExchangeAdminPassword" -AsPlainText -Force
     $adminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ExchangeAdminUsername,$adminSecurePassword
-    $searchOUs = $ExchangeSendOnBehalfMailboxSearchOU  
-    $searchValue = ($dataSource.SearchMailbox).trim()
-    $searchQuery = "*$searchValue*"  
-
-    $sessionOptionParams = @{
-        SkipCACheck = $false
-        SkipCNCheck = $false
-        SkipRevocationCheck = $false
-    }
-
-    $sessionOption = New-PSSessionOption  @SessionOptionParams 
-
-    $sessionParams = @{
-        AllowRedirection = $true
-        Authentication = $ExchangeAuthentication 
-        ConfigurationName = 'Microsoft.Exchange' 
-        ConnectionUri = $ExchangeConnectionUri 
-        Credential = $adminCredential        
-        SessionOption = $sessionOption       
-    }
-
-    $exchangeSession = New-PSSession @SessionParams
-
-    Write-Information "Search query is '$searchQuery'" 
-    Write-Information "Search OU is '$searchOUs'" 
-    $getMailboxParams = @{
-        RecipientTypeDetails = @('UserMailbox') 
-        OrganizationalUnit =  $searchOUs 
-        Filter = "Name -like '$searchQuery' -or DisplayName -like '$searchQuery' -or userPrincipalName -like '$searchQuery' -or Alias -like '$searchQuery'"   
-    }
-   
-    
-     $invokecommandParams = @{
-        Session = $exchangeSession
-        Scriptblock = [scriptblock] { Param ($Params)Get-Mailbox @Params}
-        ArgumentList = $getMailboxParams
-    }
-
-    Write-Information "Successfully connected to Exchange '$ExchangeConnectionUri'"  
-    
-    $mailBoxes =  Invoke-Command @invokeCommandParams   
-
-    $resultMailboxList = [System.Collections.Generic.List[PSCustomObject]]::New()
-    foreach ($box in $mailBoxes)
-    {
-       $resultMailbox = @{
-        ExchangeGuid = $box.ExchangeGuid
-        SamAccountName = $box.samAccountName     
-        UserPrincipalName = $box.UserPrincipalName
-
-       }
-       $resultMailboxList.add($resultMailbox)
-
-    }
-    $resultMailboxList
-    
-    Remove-PSSession($exchangeSession)
-  
+    $sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck #-SkipRevocationCheck
+    $exchangeSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $exchangeConnectionUri -Credential $adminCredential -SessionOption $sessionOption -Authentication Default -ErrorAction Stop 
+    #-AllowRedirection
+    $null = Import-PSSession $exchangeSession -DisableNameChecking -AllowClobber
+    Write-Information -Message "Successfully connected to Exchange using the URI [$exchangeConnectionUri]"
 } catch {
-    Write-Error "Error connecting to Exchange using the URI '$exchangeConnectionUri', Message '$($_.Exception.Message)'"
+    Write-Information -Message "Error connecting to Exchange using the URI [$exchangeConnectionUri]"
+    Write-Error -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)"
+    if($debug -eq $true){
+        Write-Error -Message "$($_.Exception)"
+    }
+    Write-Information -Message "Failed to connect to Exchange using the URI [$exchangeConnectionUri]"
+    throw $_
 }
 
+try {
+        
+        $mailboxes = Get-Mailbox -RecipientTypeDetails UserMailbox -ResultSize:Unlimited #-Filter "{Alias -like '$searchQuery' -or name -like '$searchQuery'}"
+
+        $mailboxes = $mailboxes | Sort-Object -Property DisplayName
+        $resultCount = @($mailboxes).Count
+        Write-Information "Result count: $resultCount"
+        if($resultCount -gt 0)
+        {
+            foreach($mailbox in $mailboxes){
+                $returnObject = @{
+                    name=$mailbox.DisplayName  + " [" + $mailbox.SamAccountName + "]"; 
+                    sAMAccountName=$mailbox.SamAccountName
+                }
+                Write-Output $returnObject
+            }
+        }
+    }
+  catch {
+    $msg = "Error searching AD user [$searchValue]. Error: $($_.Exception.Message)"
+    Write-Error $msg
+}
+
+# Disconnect from Exchange
+try{
+    Remove-PsSession -Session $exchangeSession -Confirm:$false -ErrorAction Stop
+    Write-Information -Message "Successfully disconnected from Exchange"
+} catch {
+    Write-Error -Message "Error disconnecting from Exchange"
+    Write-Error -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)"
+    if($debug -eq $true){
+        Write-Error -Message "$($_.Exception)"
+    }    
+    Write-Error -Message "Failed to disconnect from Exchange"
+    throw $_
+}
+<#----- Exchange On-Premises: End -----#>
 '@ 
 $tmpModel = @'
-[{"key":"ExchangeGuid","type":0},{"key":"UserPrincipalName","type":0}]
+[{"key":"name","type":0},{"key":"sAMAccountName","type":0}]
 '@ 
 $tmpInput = @'
-[{"description":"","translateDescription":false,"inputFieldType":1,"key":"SearchMailbox","type":0,"options":1}]
+[]
 '@ 
 $dataSourceGuid_1 = [PSCustomObject]@{} 
 $dataSourceGuid_1_Name = @'
-Exchange-On-Premises-SendOnBehalf-List-Mailboxes
+Exchange-user-generate-table-sharedmailbox-manage-memberships
 '@ 
 Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_1_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
-<# End: DataSource "Exchange-On-Premises-SendOnBehalf-List-Mailboxes" #>
+<# End: DataSource "Exchange-user-generate-table-sharedmailbox-manage-memberships" #>
 
-<# Begin: DataSource "Exchange-On-Premises-SendOnBehalf-Get-Users" #>
+<# Begin: DataSource "Exchange-sharedmailbox-generate-table-manage-permissions-sendas" #>
 $tmpPsScript = @'
-# used global defined variables in helloid
-# $ExchangeConnectionUri
-# $ExchangeAdminUsername
-# $ExchangeAdminPassword
-# $ExchangeAuthentication
-# $ExchangeSendOnBehalfUserSearchOU  
-
-## connect to exchange and get list of mailboxes
-
+<#----- Exchange On-Premises: Start -----#>
+# Connect to Exchange
 try{
-    $adminSecurePassword = ConvertTo-SecureString -String $ExchangeAdminPassword -AsPlainText -Force
+    $adminSecurePassword = ConvertTo-SecureString -String "$ExchangeAdminPassword" -AsPlainText -Force
     $adminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ExchangeAdminUsername,$adminSecurePassword
-    $searchOUs = $ExchangeSendOnBehalfUserSearchOU  
-    $searchValue = ($dataSource.SearchUser).trim()
-    $searchQuery = "*$searchValue*"   
-
-    $sessionOptionParams = @{
-        SkipCACheck = $false
-        SkipCNCheck = $false
-        SkipRevocationCheck = $false
-    }
-
-    $sessionOption = New-PSSessionOption  @SessionOptionParams 
-
-    $sessionParams = @{
-        AllowRedirection = $true
-        Authentication = $ExchangeAuthentication 
-        ConfigurationName = 'Microsoft.Exchange' 
-        ConnectionUri = $ExchangeConnectionUri 
-        Credential = $adminCredential        
-        SessionOption = $sessionOption       
-    }
-
-    $exchangeSession = New-PSSession @SessionParams
-
-    Write-Information "Search query is '$searchQuery'" 
-    Write-Information "Search OU is '$searchOUs'" 
-
-    $getUserParams = @{
-        RecipientTypeDetails = @('Mailuser','user','UserMailbox')  
-        OrganizationalUnit =  $searchOUs 
-        Filter = "Name -like '$searchQuery' -or DisplayName -like '$searchQuery' -or userPrincipalName -like '$searchQuery'"   
-    }
-     $invokecommandParams = @{
-        Session = $exchangeSession
-        Scriptblock = [scriptblock] { Param ($Params)Get-User @Params}
-        ArgumentList = $getUserParams
-    }
-
-    Write-Information "Successfully connected to Exchange '$ExchangeConnectionUri'"  
-    
-    $Users =  Invoke-Command @invokeCommandParams    
-
-    $resultList = [System.Collections.Generic.List[PSCustomObject]]::New()
-    foreach ($user in $Users) {
-        if(![string]::IsNullOrEmpty($user.DisplayName)) {
-            $DisplayName = $user.DisplayName
-        }
-        elseif (![string]::IsNullOrEmpty($user.userPrincipalName)) {
-            $DisplayName = $user.userPrincipalName           
-        }
-        else {
-            $DisplayName = $user.GUID
-        }
-
-        $result = @{  
-            SamAccountName = $user.samAccountName      
-            UserPrincipalName = $user.userPrincipalName
-            GUID = $user.GUID
-            DistinguishedName = $user.DistinguishedName   
-            DisplayName = $DisplayName
-            RecipientTypeDetails = $user.RecipientTypeDetails
-        }
-       $resultList.add($result)
-
-    }
-    $resultList
-    Remove-PSSession($exchangeSession)
-  
+    $sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck #-SkipRevocationCheck
+    $exchangeSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $exchangeConnectionUri -Credential $adminCredential -SessionOption $sessionOption -ErrorAction Stop 
+    #-AllowRedirection
+    $null = Import-PSSession $exchangeSession -DisableNameChecking -AllowClobber
+    Write-Information -Message "Successfully connected to Exchange using the URI [$exchangeConnectionUri]"
 } catch {
-    Write-Error "Error connecting to Exchange using the URI '$exchangeConnectionUri', Message '$($_.Exception.Message)'"
+    Write-Information -Message "Error connecting to Exchange using the URI [$exchangeConnectionUri]"
+    Write-Error -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)"
+    if($debug -eq $true){
+        Write-Error -Message "$($_.Exception)"
+    }
+    Write-Information -Message "Failed to connect to Exchange using the URI [$exchangeConnectionUri]"
+    throw $_
 }
 
+# Read current mailbox
+try{
+    
+    $permissions = Get-ADPermission -Identity $datasource.selectedMailbox.DistinguishedName | ?{($_.ExtendedRights -like "*send*") -and -not ($_.User -like "*NT AUTHORITY*")} | select  @{Name="Displayname"; Expression={(Get-Recipient $_.user.ToString()).Displayname.ToString()}}, @{Name="Samaccountname"; Expression={(Get-Recipient $_.user.ToString()).sAMAccountName.ToString()}}
+    Write-Information -Message "Found mailbox [$($datasource.selectedMailbox.displayName)]"
+    
+    $permissions = $permissions | Sort-Object -Property Displayname
+    foreach($permission in $permissions)
+    {
+        $displayValue = $permission.Displayname + " [" + $permission.Samaccountname + "]"
+        $returnObject = @{sAMAccountName=$permission.Samaccountname;name=$displayValue;}
+        Write-Output $returnObject
+    }    
+    
+} catch {
+    Write-Information -Message "Could not find mailbox [$($datasource.mailbox.UserPrincipalName)]"
+    Write-Error -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)"
+    if($debug -eq $true){
+        Write-Information -Message "$($_.Exception)"
+    }
+    Write-Information -Message "Failed to find mailbox [$($adUser.userPrincipalName)]"
+    throw $_
+}
+
+# Disconnect from Exchange
+try{
+    Remove-PsSession -Session $exchangeSession -Confirm:$false -ErrorAction Stop
+    Write-Information -Message "Successfully disconnected from Exchange"
+} catch {
+    Write-Error -Message "Error disconnecting from Exchange"
+    Write-Error -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)"
+    if($debug -eq $true){
+        Write-Error -Message "$($_.Exception)"
+    }    
+    Write-Error -Message "Failed to disconnect from Exchange"
+    throw $_
+}
+<#----- Exchange On-Premises: End -----#>
 '@ 
 $tmpModel = @'
-[{"key":"DisplayName","type":0},{"key":"GUID","type":0},{"key":"DistinguishedName","type":0},{"key":"RecipientTypeDetails","type":0},{"key":"UserPrincipalName","type":0},{"key":"SamAccountName","type":0}]
+[{"key":"sAMAccountName","type":0},{"key":"name","type":0}]
 '@ 
 $tmpInput = @'
-[{"description":"Search filter for user lookup","translateDescription":false,"inputFieldType":1,"key":"SearchUser","type":0,"options":1}]
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedMailbox","type":0,"options":1}]
+'@ 
+$dataSourceGuid_2 = [PSCustomObject]@{} 
+$dataSourceGuid_2_Name = @'
+Exchange-sharedmailbox-generate-table-manage-permissions-sendas
+'@ 
+Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_2_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_2) 
+<# End: DataSource "Exchange-sharedmailbox-generate-table-manage-permissions-sendas" #>
+
+<# Begin: DataSource "Exchange-sharedmailbox-generate-table-wildcard-sendas" #>
+$tmpPsScript = @'
+<#----- Exchange On-Premises: Start -----#>
+# Connect to Exchange
+try{
+    $adminSecurePassword = ConvertTo-SecureString -String "$ExchangeAdminPassword" -AsPlainText -Force
+    $adminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ExchangeAdminUsername,$adminSecurePassword
+    $sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck #-SkipRevocationCheck
+    $exchangeSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $exchangeConnectionUri -Credential $adminCredential -SessionOption $sessionOption -Authentication Default -ErrorAction Stop 
+    #-AllowRedirection
+    $null = Import-PSSession $exchangeSession -DisableNameChecking -AllowClobber
+    Write-Information -Message "Successfully connected to Exchange using the URI [$exchangeConnectionUri]"
+} catch {
+    Write-Information -Message "Error connecting to Exchange using the URI [$exchangeConnectionUri]"
+    Write-Error -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)"
+    if($debug -eq $true){
+        Write-Error -Message "$($_.Exception)"
+    }
+    Write-Information -Message "Failed to connect to Exchange using the URI [$exchangeConnectionUri]"
+    throw $_
+}
+
+try {
+    $searchValue = $dataSource.searchMailbox
+    $searchQuery = "*$searchValue*"
+    $searchOUs = $ADsharedMailboxSearchOU
+     
+    
+    if([String]::IsNullOrEmpty($searchValue) -eq $true){
+        Write-Information "Geen Searchvalue"
+        return
+    }else{
+        Write-Information "SearchQuery: $searchQuery"
+        
+        $mailboxes = Get-Mailbox -RecipientTypeDetails SharedMailbox -ResultSize:Unlimited -Filter "{Alias -like '$searchQuery' -or name -like '$searchQuery'}"
+
+        $mailboxes = $mailboxes | Sort-Object -Property DisplayName
+        $resultCount = @($mailboxes).Count
+        Write-Information "Result count: $resultCount"
+        if($resultCount -gt 0){
+            foreach($mailbox in $mailboxes){
+                $returnObject = @{displayName=$mailbox.DisplayName; UserPrincipalName=$mailbox.UserPrincipalName; Alias=$mailbox.Alias; DistinguishedName=$mailbox.DistinguishedName}
+                Write-Output $returnObject
+            }
+        }
+    }
+} catch {
+    $msg = "Error searching AD user [$searchValue]. Error: $($_.Exception.Message)"
+    Write-Error $msg
+}
+
+# Disconnect from Exchange
+try{
+    Remove-PsSession -Session $exchangeSession -Confirm:$false -ErrorAction Stop
+    Write-Information -Message "Successfully disconnected from Exchange"
+} catch {
+    Write-Error -Message "Error disconnecting from Exchange"
+    Write-Error -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)"
+    if($debug -eq $true){
+        Write-Error -Message "$($_.Exception)"
+    }    
+    Write-Error -Message "Failed to disconnect from Exchange"
+    throw $_
+}
+<#----- Exchange On-Premises: End -----#>
+'@ 
+$tmpModel = @'
+[{"key":"DistinguishedName","type":0},{"key":"displayName","type":0},{"key":"UserPrincipalName","type":0},{"key":"Alias","type":0}]
+'@ 
+$tmpInput = @'
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"searchMailbox","type":0,"options":1}]
 '@ 
 $dataSourceGuid_0 = [PSCustomObject]@{} 
 $dataSourceGuid_0_Name = @'
-Exchange-On-Premises-SendOnBehalf-Get-Users
+Exchange-sharedmailbox-generate-table-wildcard-sendas
 '@ 
 Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_0_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_0) 
-<# End: DataSource "Exchange-On-Premises-SendOnBehalf-Get-Users" #>
+<# End: DataSource "Exchange-sharedmailbox-generate-table-wildcard-sendas" #>
 <# End: HelloID Data sources #>
 
-<# Begin: Dynamic Form "Exchange-On-Premises-SendOnBehalf" #>
+<# Begin: Dynamic Form "Exchange on-premise - Manage send as permissions shared mailbox" #>
 $tmpSchema = @"
-[{"label":"Select user","fields":[{"templateOptions":{},"type":"text","summaryVisibility":"Show","body":"Select the user that should aquire SendOnBehalf rights ","requiresTemplateOptions":false,"requiresKey":false,"requiresDataSource":false},{"key":"textSearchUser","templateOptions":{"label":"Search user","placeholder":"\u003cEnter search filter\u003e","required":true},"type":"input","summaryVisibility":"Hide element","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":false},{"key":"User","templateOptions":{"label":"Users","required":true,"grid":{"columns":[{"headerName":"Display Name","field":"DisplayName"},{"headerName":"GUID","field":"GUID"},{"headerName":"Distinguished Name","field":"DistinguishedName"},{"headerName":"Recipient Type Details","field":"RecipientTypeDetails"},{"headerName":"User Principal Name","field":"UserPrincipalName"},{"headerName":"Sam Account Name","field":"SamAccountName"}],"height":300,"rowSelection":"single"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_0","input":{"propertyInputs":[{"propertyName":"SearchUser","otherFieldValue":{"otherFieldKey":"textSearchUser"}}]}},"useDefault":false},"type":"grid","summaryVisibility":"Show","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":true}]},{"label":"Select mailbox","fields":[{"templateOptions":{},"type":"text","summaryVisibility":"Show","body":"Select the mailbox account to be able to send on behalf of","requiresTemplateOptions":false,"requiresKey":false,"requiresDataSource":false},{"key":"textSeachMailbox","templateOptions":{"label":"Search Mailbox","placeholder":"\u003cEnter search filter\u003e","required":true},"type":"input","summaryVisibility":"Hide element","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":false},{"key":"Mailbox","templateOptions":{"label":"Mailbox","required":true,"grid":{"columns":[{"headerName":"Exchange Guid","field":"ExchangeGuid"},{"headerName":"User Principal Name","field":"UserPrincipalName"}],"height":300,"rowSelection":"single"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_1","input":{"propertyInputs":[{"propertyName":"SearchMailbox","otherFieldValue":{"otherFieldKey":"textSeachMailbox"}}]}},"useFilter":true,"useDefault":false},"type":"grid","summaryVisibility":"Show","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":true}]}]
+[{"label":"Details","fields":[{"key":"searchMailbox","templateOptions":{"label":"Search","placeholder":""},"type":"input","summaryVisibility":"Hide element","requiresTemplateOptions":true,"requiresKey":true},{"key":"gridMailbox","templateOptions":{"label":"Mailbox","required":true,"grid":{"columns":[{"headerName":"Display Name","field":"displayName"},{"headerName":"Alias","field":"Alias"},{"headerName":"User Principal Name","field":"UserPrincipalName"}],"height":300,"rowSelection":"single"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_0","input":{"propertyInputs":[{"propertyName":"searchMailbox","otherFieldValue":{"otherFieldKey":"searchMailbox"}}]}},"defaultSelectorProperty":"DistinguishedName"},"type":"grid","summaryVisibility":"Show","requiresTemplateOptions":true,"requiresKey":true}]},{"label":"Mailbox Permissions","fields":[{"key":"sendasList","templateOptions":{"label":"Send As permissions","required":false,"filterable":true,"useDataSource":true,"dualList":{"options":[{"guid":"75ea2890-88f8-4851-b202-626123054e14","Name":"Apple"},{"guid":"0607270d-83e2-4574-9894-0b70011b663f","Name":"Pear"},{"guid":"1ef6fe01-3095-4614-a6db-7c8cd416ae3b","Name":"Orange"}],"optionKeyProperty":"sAMAccountName","optionDisplayProperty":"name"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_1","input":{"propertyInputs":[]}},"destinationDataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_2","input":{"propertyInputs":[{"propertyName":"selectedMailbox","otherFieldValue":{"otherFieldKey":"gridMailbox"}}]}}},"type":"duallist","summaryVisibility":"Show","sourceDataSourceIdentifierSuffix":"source-datasource","destinationDataSourceIdentifierSuffix":"destination-datasource","requiresTemplateOptions":true,"requiresKey":true}]}]
 "@ 
 
 $dynamicFormGuid = [PSCustomObject]@{} 
 $dynamicFormName = @'
-Exchange-On-Premises-SendOnBehalf
+Exchange on-premise - Manage send as permissions shared mailbox
 '@ 
 Invoke-HelloIDDynamicForm -FormName $dynamicFormName -FormSchema $tmpSchema  -returnObject ([Ref]$dynamicFormGuid) 
 <# END: Dynamic Form #>
@@ -592,80 +613,122 @@ $delegatedFormCategoryGuids = (ConvertTo-Json -InputObject $delegatedFormCategor
 <# Begin: Delegated Form #>
 $delegatedFormRef = [PSCustomObject]@{guid = $null; created = $null} 
 $delegatedFormName = @'
-Exchange-On-Premises-SendOnBehalf
+Exchange on-premise - Manage send as permissions shared mailbox
 '@
-Invoke-HelloIDDelegatedForm -DelegatedFormName $delegatedFormName -DynamicFormGuid $dynamicFormGuid -AccessGroups $delegatedFormAccessGroupGuids -Categories $delegatedFormCategoryGuids -UseFaIcon "True" -FaIcon "fa fa-file-text-o" -returnObject ([Ref]$delegatedFormRef) 
+Invoke-HelloIDDelegatedForm -DelegatedFormName $delegatedFormName -DynamicFormGuid $dynamicFormGuid -AccessGroups $delegatedFormAccessGroupGuids -Categories $delegatedFormCategoryGuids -UseFaIcon "True" -FaIcon "fa fa-pencil-square" -returnObject ([Ref]$delegatedFormRef) 
 <# End: Delegated Form #>
 
 <# Begin: Delegated Form Task #>
 if($delegatedFormRef.created -eq $true) { 
 	$tmpScript = @'
-# used global defined variables in helloid
-# $ExchangeConnectionUri
-# $ExchangeAdminUsername
-# $ExchangeAdminPassword
-# $ExchangeAuthentication
+# Fixed values
+$AutoMapping = $false
 
-## connect to exchange and get list of mailboxes
-
-try{
-    $adminSecurePassword = ConvertTo-SecureString -String $ExchangeAdminPassword -AsPlainText -Force
-    $adminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ExchangeAdminUsername,$adminSecurePassword
-
-    $sessionOptionParams = @{
-        SkipCACheck = $false
-        SkipCNCheck = $false
-        SkipRevocationCheck = $false
+try {
+    <#----- Exchange On-Premises: Start -----#>
+    # Connect to Exchange
+    try {
+        $adminSecurePassword = ConvertTo-SecureString -String "$ExchangeAdminPassword" -AsPlainText -Force
+        $adminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ExchangeAdminUsername, $adminSecurePassword
+        $sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
+        $exchangeSession = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri $exchangeConnectionUri -Credential $adminCredential -SessionOption $sessionOption -ErrorAction Stop 
+        #-AllowRedirection
+        $null = Import-PSSession $exchangeSession -DisableNameChecking -AllowClobber
+        HID-Write-Status -Message "Successfully connected to Exchange using the URI [$exchangeConnectionUri]" -Event Success
+    }
+    catch {
+        HID-Write-Status -Message "Error connecting to Exchange using the URI [$exchangeConnectionUri]" -Event Error
+        HID-Write-Status -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)" -Event Error
+        if ($debug -eq $true) {
+            HID-Write-Status -Message "$($_.Exception)" -Event Error
+        }
+        HID-Write-Summary -Message "Failed to connect to Exchange using the URI [$exchangeConnectionUri]" -Event Failed
+        throw $_
     }
 
-    $sessionOption = New-PSSessionOption  @SessionOptionParams 
-
-    $sessionParams = @{
-        AllowRedirection = $true
-        Authentication = $ExchangeAuthentication 
-        ConfigurationName = 'Microsoft.Exchange' 
-        ConnectionUri = $ExchangeConnectionUri 
-        Credential = $adminCredential        
-        SessionOption = $sessionOption       
+    Hid-Write-Status -Message "Checking if mailbox with identity '$($mailboxAlias)' exists" -Event Information
+    $mailbox = Get-Mailbox -Identity $mailboxAlias -ErrorAction Stop
+    if ($mailbox.Name.Count -eq 0) {
+        throw "Could not find shared mailbox with identity '$($mailboxAlias)'"
     }
-
-    $exchangeSession = New-PSSession @SessionParams
-     HID-Write-Status -Message "Successfully connected to Exchange '$ExchangeConnectionUri'" -Event Information
-
-    $SetUserParams = @{
-        identity = $mailboxGuid    
-        GrantSendOnBehalfTo = @{add="$userGUID"}
-    }
-
-     $invokecommandParams = @{
-        Session = $exchangeSession
-        Scriptblock = [scriptblock] { Param ($Params)Set-Mailbox @Params}
-        ArgumentList = $SetUserParams
-    }
-
-   
-    $invokecommandParams   
-    $null =  Invoke-Command @invokeCommandParams        
- 
-    HID-Write-Status -Message "Succesfully granted SendOnBehalf right to user $userUPN [$userGUID] for mailbox $mailboxUPN [$mailboxGuid]" -Event Success
-    HID-Write-Summary -Message "Succesfully granted SendOnBehalf right to user $userUPN for mailbox $mailboxUPN" -Event Success   
+        
     
-    Remove-PSSession($exchangeSession)
-  
-} catch {
-    HID-Write-Status "Error connecting to Exchange using the URI '$exchangeConnectionUri', Message: '$($_.Exception.Message)'" -Event Error
-    HID-Write-Summary -Message "Failed to grant  SendOnBehalf right to user $userUPN for mailbox $mailboxUPN "  -Event Failed
+    # Add Send As Permissions for Mail-enabled Security Group for users
+    try { 
+        # Add Send As Permissions
+        if ($usersToAddSendAs -ne "[]") {
+            HID-Write-Status -Message "Starting to add send as members to mailbox $($mailboxAlias)" -Event Information
+            $usersToAddJson = $usersToAddSendAs | ConvertFrom-Json
+            foreach ($user in $usersToAddJson) {
+                
+                Add-ADPermission -Identity $mailboxDn -AccessRights ExtendedRight -ExtendedRights "Send As" -Confirm:$false -User $user.sAMAccountName -ErrorAction Stop
+                
+                Hid-Write-Status -Message "Assigned access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)] successfully" -Event Success
+                HID-Write-Summary -Message "Assigned access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)] successfully" -Event Success
+            }
+        }
+        
+    }
+    catch {
+        HID-Write-Status -Message "Error assigning access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)]. Error: $($_.Exception.Message)" -Event Error
+        HID-Write-Summary -Message "Error assigning access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)]" -Event Failed
+        throw $_
+    }
+
+    # Remove Send As Permissions for Mail-enabled Security Group for users
+    try { 
+        # Remove Send As Permissions
+        if ($usersToRemoveSendAs -ne "[]") {
+            HID-Write-Status -Message "Starting to remove send as members to mailbox $($mailboxAlias)" -Event Information
+            $usersToAddJson = $usersToRemoveSendAs | ConvertFrom-Json
+            foreach ($user in $usersToAddJson) {
+                
+                Remove-ADPermission -Identity $mailboxDn -ExtendedRights "Send As" -Confirm:$false -User $user.sAMAccountName -ErrorAction Stop
+                
+                Hid-Write-Status -Message "Removing access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)] successfully" -Event Success
+                HID-Write-Summary -Message "Removing access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)] successfully" -Event Success
+            }
+        }
+        
+    }
+    catch {
+        HID-Write-Status -Message "Error removing access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)]. Error: $($_.Exception.Message)" -Event Error
+        HID-Write-Summary -Message "Error removing access rights [SendAs] for mailbox [$($mailboxAlias)] to [$($user.sAMAccountName)]" -Event Failed
+        throw $_
+    }
 }
+catch {
+    HID-Write-Status -Message "Error removing access rights for mailbox [$($mailboxAlias)] to the user [$($user.sAMAccountName)]. Error: $($_.Exception.Message)" -Event Error
+    HID-Write-Summary -Message "Error removing access rights for mailbox [$($mailboxAlias)] to the user [$($user.sAMAccountName)]" -Event Failed
+}
+finally {
+    # Disconnect from Exchange
+    try {
+        Remove-PsSession -Session $exchangeSession -Confirm:$false -ErrorAction Stop
+        HID-Write-Status -Message "Successfully disconnected from Exchange" -Event Success
+    }
+    catch {
+        HID-Write-Status -Message "Error disconnecting from Exchange" -Event Error
+        HID-Write-Status -Message "Error at line: $($_.InvocationInfo.ScriptLineNumber - 79): $($_.Exception.Message)" -Event Error
+        if ($debug -eq $true) {
+            HID-Write-Status -Message "$($_.Exception)" -Event Error
+        }
+        HID-Write-Summary -Message "Failed to disconnect from Exchange" -Event Failed
+        throw $_
+    }
+    <#----- Exchange On-Premises: End -----#>
+}
+
 
 '@; 
 
 	$tmpVariables = @'
-[{"name":"MailboxUPN","value":"{{form.Mailbox.UserPrincipalName}}","secret":false,"typeConstraint":"string"},{"name":"UserGuid","value":"{{form.User.GUID}}","secret":false,"typeConstraint":"string"},{"name":"MailboxGuid","value":"{{form.Mailbox.ExchangeGuid}}","secret":false,"typeConstraint":"string"},{"name":"UserUPN","value":"{{form.User.UserPrincipalName}}","secret":false,"typeConstraint":"string"}]
+[{"name":"mailboxAlias","value":"{{form.gridMailbox.Alias}}","secret":false,"typeConstraint":"string"},{"name":"mailboxDn","value":"{{form.gridMailbox.DistinguishedName}}","secret":false,"typeConstraint":"string"},{"name":"mailboxIdentity","value":"{{form.gridMailbox.UserPrincipalName}}","secret":false,"typeConstraint":"string"},{"name":"usersToAddSendAs","value":"{{form.sendasList.leftToRight.toJsonString}}","secret":false,"typeConstraint":"string"},{"name":"usersToRemoveSendAs","value":"{{form.sendasList.rightToLeft.toJsonString}}","secret":false,"typeConstraint":"string"}]
 '@ 
 
 	$delegatedFormTaskGuid = [PSCustomObject]@{} 
 $delegatedFormTaskName = @'
-Exchange-On-Premises-SendOnBehalf
+Exchange-on-premise-manage-send-as-shared-mailbox-permissions
 '@
 	Invoke-HelloIDAutomationTask -TaskName $delegatedFormTaskName -UseTemplate "False" -AutomationContainer "8" -Variables $tmpVariables -PowershellScript $tmpScript -ObjectGuid $delegatedFormRef.guid -ForceCreateTask $true -returnObject ([Ref]$delegatedFormTaskGuid) 
 } else {

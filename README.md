@@ -1,5 +1,3 @@
-# HelloID-Conn-SA-Full-Exchange-On-premises-SendOnBehalf
-
 <!-- Description -->
 ## Description
 This HelloID Service Automation Delegated Form provides the functionality to add a user account to the list of users that have "SendOnBehalf" rights for a specific mailbox. The following steps are provided
@@ -9,6 +7,12 @@ This HelloID Service Automation Delegated Form provides the functionality to add
  3. Enter a name to lookup the mailbox
  4. The result will show you a list of mailboxes. You will need select to correct one
  5. On submit, the user will be added to the list of users that has the "SendOnBehalf" right.
+
+## Versioning
+| Version | Description | Date |
+| - | - | - |
+| 1.0.1   | Added version number and updated all-in-one script | 2021/11/16  |
+| 1.0.0   | Initial release | 2021/04/29  |
 
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
@@ -54,5 +58,8 @@ This Powershell data source runs a query to search for the mailbox.
 ### Delegated form task '[task]_Exchange-On-Premises-SendOnBehalf'
 This delegated form task adds the user to the "SendOnBehalf" rights list of the mailbox
 
-# HelloID Docs
+## Getting help
+_If you need help, feel free to ask questions on our [forum](https://forum.helloid.com/forum/helloid-connectors/service-automation/252-helloid-sa-exchange-onpremises-sendonbehalf)_
+
+## HelloID Docs
 The official HelloID documentation can be found at: https://docs.helloid.com/

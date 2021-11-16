@@ -1,9 +1,9 @@
 [
     {
-        "description":  "Search filter for user lookup",
+        "description":  null,
         "translateDescription":  false,
         "inputFieldType":  1,
-        "key":  "SearchUser",
+        "key":  "searchMailbox",
         "type":  0,
         "options":  1
     }

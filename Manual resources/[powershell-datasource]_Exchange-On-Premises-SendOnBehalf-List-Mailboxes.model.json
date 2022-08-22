@@ -1,10 +1,14 @@
 [
     {
-        "key":  "ExchangeGuid",
+        "key":  "SamAccountName",
         "type":  0
     },
     {
         "key":  "UserPrincipalName",
+        "type":  0
+    },
+    {
+        "key":  "ExchangeGuid",
         "type":  0
     }
 ]

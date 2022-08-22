@@ -54,7 +54,7 @@ try{
 
     $resultMailboxList = [System.Collections.Generic.List[PSCustomObject]]::New()
     foreach ($box in $mailBoxes)
-    {
+    {        
        $resultMailbox = @{
         ExchangeGuid = $box.ExchangeGuid
         SamAccountName = $box.samAccountName     

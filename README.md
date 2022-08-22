@@ -11,6 +11,7 @@ This HelloID Service Automation Delegated Form provides the functionality to add
 ## Versioning
 | Version | Description | Date |
 | - | - | - |
+| 1.0.2   | Added version number and updated code for SA-agent and auditlogging | 2022/08/22  |
 | 1.0.1   | Added version number and updated all-in-one script | 2021/11/16  |
 | 1.0.0   | Initial release | 2021/04/29  |
 
@@ -55,7 +56,7 @@ This Powershell data source runs a query to search for the user.
 ### Powershell data source '[powershell-datasource]_Exchange-On-Premises_SendOnBehalf-List-Mailboxes'
 This Powershell data source runs a query to search for the mailbox.
 
-### Delegated form task '[task]_Exchange-On-Premises-SendOnBehalf'
+### Delegated form task '[task]_Exchange on-Premises - Manage SendOnBehalf Permissions'
 This delegated form task adds the user to the "SendOnBehalf" rights list of the mailbox
 
 ## Getting help

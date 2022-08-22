@@ -38,12 +38,16 @@
                                                                                     "field":  "DisplayName"
                                                                                 },
                                                                                 {
-                                                                                    "headerName":  "GUID",
-                                                                                    "field":  "GUID"
+                                                                                    "headerName":  "Sam Account Name",
+                                                                                    "field":  "SamAccountName"
                                                                                 },
                                                                                 {
                                                                                     "headerName":  "Distinguished Name",
                                                                                     "field":  "DistinguishedName"
+                                                                                },
+                                                                                {
+                                                                                    "headerName":  "GUID",
+                                                                                    "field":  "GUID"
                                                                                 },
                                                                                 {
                                                                                     "headerName":  "Recipient Type Details",
@@ -52,10 +56,6 @@
                                                                                 {
                                                                                     "headerName":  "User Principal Name",
                                                                                     "field":  "UserPrincipalName"
-                                                                                },
-                                                                                {
-                                                                                    "headerName":  "Sam Account Name",
-                                                                                    "field":  "SamAccountName"
                                                                                 }
                                                                             ],
                                                                 "height":  300,
@@ -119,12 +119,16 @@
                                                    "grid":  {
                                                                 "columns":  [
                                                                                 {
-                                                                                    "headerName":  "Exchange Guid",
-                                                                                    "field":  "ExchangeGuid"
+                                                                                    "headerName":  "Sam Account Name",
+                                                                                    "field":  "SamAccountName"
                                                                                 },
                                                                                 {
                                                                                     "headerName":  "User Principal Name",
                                                                                     "field":  "UserPrincipalName"
+                                                                                },
+                                                                                {
+                                                                                    "headerName":  "Exchange Guid",
+                                                                                    "field":  "ExchangeGuid"
                                                                                 }
                                                                             ],
                                                                 "height":  300,

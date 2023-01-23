@@ -9,7 +9,7 @@
 
 try{
     $adminSecurePassword = ConvertTo-SecureString -String $ExchangeAdminPassword -AsPlainText -Force
-    $adminCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $ExchangeAdminUsername,$adminSecurePassword
+    $adminCredential = [System.Management.Automation.PSCredential]::new($ExchangeAdminUsername,$adminSecurePassword)
     $searchOUs = $ExchangeSendOnBehalfMailboxSearchOU  
     $searchValue = ($dataSource.SearchMailbox).trim()
     $searchQuery = "*$searchValue*"  
